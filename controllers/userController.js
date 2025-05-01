@@ -70,10 +70,16 @@ export function loginUser(req, res) {
           isDisabled: user.isDisabled,
           isEmailVerified: user.isEmailVerified,
         };
-        const token = jwt.sign(userData, process.env.JWT_KEY);
+        // const token = jwt.sign(userData, process.env.JWT_KEY); or use as below 
+
+        const token = jwt.sign(userData, process.env.JWT_KEY,{
+          expiresIn:"48hrs"
+        });
+
         res.json({
           message: "Login Successful",
           token: token,
+          user: userData,
         });
 
         // res.json({
