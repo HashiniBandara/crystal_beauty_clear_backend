@@ -42,13 +42,16 @@ export async function createOrder(req, res) {
       for (let i = 0; i < body.billItems.length; i++) {
         // const billItem = body.billItems[i];
 
-        const product= await Product.findOne({
-          productId:body.billItems[i].productId
-        })
+        const product = await Product.findOne({
+          productId: body.billItems[i].productId,
+        });
 
         if (product == null) {
           res.status(404).json({
-            message: "Product with product id " + body.billItems[i].productId + " not found",
+            message:
+              "Product with product id " +
+              body.billItems[i].productId +
+              " not found",
           });
           return;
         }
@@ -68,7 +71,8 @@ export async function createOrder(req, res) {
           quantity: body.billItems[i].quantity,
           price: product.price,
         };
-        orderData.total =orderData.total+product.price*body.billItems[i].quantity;
+        orderData.total =
+          orderData.total + product.price * body.billItems[i].quantity;
       }
 
       const order = new Order(orderData);
@@ -96,27 +100,72 @@ export function getOrders(req, res) {
     return;
   }
 
-  if (req.user.role != "admin") {
+  // if (req.user.role != "admin") {
+  //   Order.find()
+  //     .then((orders) => {
+  //       res.json(orders);
+  //     })
+  //     .catch((err) => {
+  //       res.status(500).json({
+  //         message: "Orders not found",
+  //       });
+  //     });
+  // } else {
+  //   Order.find({
+  //     email: req.user.email,
+  //   })
+  //     .then((orders) => {
+  //       res.json(orders);
+  //     })
+  //     .catch((err) => {
+  //       res.status(500).json({
+  //         message: "Orders not found",
+  //       });
+  //     });
+  // }
+  if (req.user.role === "admin") {
+    // Admin: show all orders
     Order.find()
-      .then((orders) => {
-        res.json(orders);
-      })
-      .catch((err) => {
-        res.status(500).json({
-          message: "Orders not found",
-        });
-      });
+      .then((orders) => res.json(orders))
+      .catch((err) => res.status(500).json({ message: "Orders not found" }));
   } else {
-    Order.find({
-      email: req.user.email,
-    })
-      .then((orders) => {
-        res.json(orders);
-      })
-      .catch((err) => {
-        res.status(500).json({
-          message: "Orders not found",
-        });
+    // Non-admin: show only user's orders
+    Order.find({ email: req.user.email })
+      .then((orders) => res.json(orders))
+      .catch((err) => res.status(500).json({ message: "Orders not found" }));
+  }
+}
+
+export async function updateOrder(req, res) {
+  try {
+    if (req.user == null) {
+      res.status(401).json({
+        message: "Unathorized",
       });
+      return;
+    }
+
+    if (req.user.role != "admin") {
+      res.status(403).json({
+        message: "You are not authorized to update an order",
+      });
+      return;
+    }
+
+    const orderId = req.params.orderId;
+    const order = await Order.findOneAndUpdate(
+      {
+        orderId: orderId,
+      },
+      req.body
+    );
+    res.json({
+      message: "Order updated successfully",
+    });
+  } catch (err) {
+    // console.log(err);
+    res.status(500).json({
+      message: "Order not updated",
+    });
   }
 }
