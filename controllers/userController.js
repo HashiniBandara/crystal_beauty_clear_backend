@@ -77,6 +77,7 @@ export function loginUser(req, res) {
         });
 
         res.json({
+          success: true,
           message: "Login Successful",
           token: token,
           user: userData,
@@ -133,6 +134,7 @@ export async function googleLogin(req, res) {
       });
 
       res.json({
+        success: true,
         message: "Login Successful",
         token: token,
         user: userData,
@@ -153,6 +155,7 @@ export async function googleLogin(req, res) {
       });
 
       res.json({
+        success: true,
         message: "Login Successful",
         token: token,
         user: userData,
@@ -163,24 +166,17 @@ export async function googleLogin(req, res) {
       message: "Google login failed",
     });
   }
-  //     const userData={
-  //       email:user.email,
-  //       firstName:user.firstName,
-  //       lastName:user.lastName,
-  //       role:user.role,
-  //       isDisabled:user.isDisabled,
-  //       isEmailVerified:user.isEmailVerified
-  //     }
-  //     const token=jwt.sign(userData,process.env.JWT_KEY);
-  //     res.json({
-  //       message:"Login successful",
-  //       token:token,
-  //       user:userData
-  //     })
-  //   }
-  // }catch(e){
-  //   res.status(500).json({
-  //     message:"Google login failed"
-  //   })
-  // }
+ 
+}
+
+export function getCurrentUser(req,res){
+  if(req.user==null){
+    res.status(403).json({
+      message:"Please login to get user details",
+    });
+    return;
+  }
+  res.json({
+    user:req.user
+  })
 }
