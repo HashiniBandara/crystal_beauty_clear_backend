@@ -3,7 +3,20 @@ import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import dotenv from "dotenv";
 import axios from "axios";
+import nodemailer from "nodemailer";
+import { OTP } from "../models/otp.js";
 dotenv.config();
+
+const transport = nodemailer.createTransport({
+  service: "gmail",
+  host: "smtp.gmail.com",
+  port: 587,
+  secure: false,
+  auth: {
+    user: process.env.EMAIL,
+    pass: process.env.PASSWORD,
+  },
+});
 
 export function saveUser(req, res) {
   if (req.body.role == "admin") {
@@ -35,6 +48,7 @@ export function saveUser(req, res) {
     .save()
     .then(() => {
       res.json({
+        success: true,
         message: "User saved successfully",
       });
     })
@@ -166,17 +180,93 @@ export async function googleLogin(req, res) {
       message: "Google login failed",
     });
   }
- 
 }
 
-export function getCurrentUser(req,res){
-  if(req.user==null){
+export function getCurrentUser(req, res) {
+  if (req.user == null) {
     res.status(403).json({
-      message:"Please login to get user details",
+      message: "Please login to get user details",
     });
     return;
   }
   res.json({
-    user:req.user
+    user: req.user,
+  });
+}
+
+export async function sendOTP(req, res) {
+  const email = req.body.email;
+  const otp = Math.floor(Math.random() * 9000 + 1000);
+
+  const message = {
+    from: process.env.EMAIL,
+    to: email,
+    subject: "OTP for Reset Password",
+    text: "Your OTP is " + otp,
+  };
+
+  const newOtp=new OTP({
+    email:email,
+    otp:otp
   })
+
+  newOtp.save().then(()=>{
+    console.log("OTP saved successfully")
+  })
+
+  transport
+    .sendMail(message)
+    .then(() => {
+      res.json({
+        message: "OTP sent successfully",
+      });
+    })
+    .catch((error) => {
+      res.status(500).json({
+        message: "OTP not sent",
+        error: error.message,
+      });
+    });
+}
+
+export async function changePassword(req, res) {
+  const email=req.body.email;
+  const password=req.body.password;
+  const otp=req.body.otp;
+
+  try{
+    const lastOTPData=await OTP.findOne({
+      email:email,
+    }).sort({
+      createdAt:-1
+    })
+    if(lastOTPData==null){
+      res.status(404).json({
+        message:"No OTP found for this email",
+      })
+      return;
+    }
+    if(lastOTPData.otp!=otp){
+      res.status(403).json({
+        message:"Invalid OTP",
+      })
+      return;
+    }
+
+    const hashedPassword = bcrypt.hashSync(password, 10);
+    await User.updateOne({
+      email:email
+    },{
+      password:hashedPassword
+    })
+    res.json({
+      message:"Password changed successfully",
+    })
+
+  }catch(err){
+    res.status(500).json({
+      message:"Error in changing password",
+      
+    })
+  }
 }

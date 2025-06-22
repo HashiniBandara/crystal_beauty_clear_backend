@@ -115,3 +115,23 @@ export function updateProduct(req, res) {
       });
     });
 }
+
+export async function searchProduct(req, res) {
+  const search = req.params.id;
+  try {
+    const products = await Product.find({
+      $or: [
+        { mame: { $regex: search, $options: "i" } },
+        { altName: { $elemMatch: { $regex: search, $options: "i" } } },
+      ],
+    });
+    res.json({
+      products: products,
+    });
+  } catch (err) {
+    res.status(500).json({
+      message: "Error in searching product",
+    });
+    return;
+  }
+}
