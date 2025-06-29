@@ -35,6 +35,27 @@ const productSchema = new mongoose.Schema({
     type: Number,
     required: true,
   },
+  // Category reference (as ID string)
+  categoryId: {
+    type: String,
+    required: true,
+  },
+
+  // Feature flags
+  isFeatured: {
+    type: Boolean,
+    default: false,
+  },
+  isTrending: {
+    type: Boolean,
+    default: false,
+  },
+
+  // For latest products sorting
+  createdAt: {
+    type: Date,
+    default: Date.now,
+  },
 })
 
 const Product =mongoose.model("products",productSchema)

@@ -41,6 +41,7 @@ export function saveUser(req, res) {
     firstName: req.body.firstName,
     lastName: req.body.lastName,
     password: hashedPassword,
+    phone: req.body.phone,
     role: req.body.role,
   });
 
@@ -205,14 +206,14 @@ export async function sendOTP(req, res) {
     text: "Your OTP is " + otp,
   };
 
-  const newOtp=new OTP({
-    email:email,
-    otp:otp
-  })
+  const newOtp = new OTP({
+    email: email,
+    otp: otp,
+  });
 
-  newOtp.save().then(()=>{
-    console.log("OTP saved successfully")
-  })
+  newOtp.save().then(() => {
+    console.log("OTP saved successfully");
+  });
 
   transport
     .sendMail(message)
@@ -230,43 +231,67 @@ export async function sendOTP(req, res) {
 }
 
 export async function changePassword(req, res) {
-  const email=req.body.email;
-  const password=req.body.password;
-  const otp=req.body.otp;
+  const email = req.body.email;
+  const password = req.body.password;
+  const otp = req.body.otp;
 
-  try{
-    const lastOTPData=await OTP.findOne({
-      email:email,
+  try {
+    const lastOTPData = await OTP.findOne({
+      email: email,
     }).sort({
-      createdAt:-1
-    })
-    if(lastOTPData==null){
+      createdAt: -1,
+    });
+    if (lastOTPData == null) {
       res.status(404).json({
-        message:"No OTP found for this email",
-      })
+        message: "No OTP found for this email",
+      });
       return;
     }
-    if(lastOTPData.otp!=otp){
+    if (lastOTPData.otp != otp) {
       res.status(403).json({
-        message:"Invalid OTP",
-      })
+        message: "Invalid OTP",
+      });
       return;
     }
 
     const hashedPassword = bcrypt.hashSync(password, 10);
-    await User.updateOne({
-      email:email
-    },{
-      password:hashedPassword
-    })
+    await User.updateOne(
+      {
+        email: email,
+      },
+      {
+        password: hashedPassword,
+      }
+    );
     res.json({
-      message:"Password changed successfully",
-    })
-
-  }catch(err){
+      message: "Password changed successfully",
+    });
+  } catch (err) {
     res.status(500).json({
-      message:"Error in changing password",
-      
-    })
+      message: "Error in changing password",
+    });
+  }
+}
+
+// Get all users
+export async function getAllUsers(req, res) {
+  try {
+    const users = await User.find();
+    res.json(users);
+  } catch (err) {
+    res.status(500).json({ message: "Failed to fetch users" });
+  }
+}
+
+// Block/Unblock user
+export async function blockUser(req, res) {
+  const { email, isDisabled } = req.body;
+  try {
+    await User.updateOne({ email }, { isDisabled });
+    res.json({
+      message: `User ${isDisabled ? "blocked" : "unblocked"} successfully`,
+    });
+  } catch (err) {
+    res.status(500).json({ message: "Failed to update user status" });
   }
 }
