@@ -295,3 +295,81 @@ export async function blockUser(req, res) {
     res.status(500).json({ message: "Failed to update user status" });
   }
 }
+
+
+// export async function updateProfile(req, res) {
+//   if (!req.user) {
+//     return res.status(401).json({ message: "Unauthorized" });
+//   }
+
+//   const { firstName, lastName, phone } = req.body;
+
+//   try {
+//     const updated = await User.updateOne(
+//       { email: req.user.email },
+//       { firstName, lastName, phone }
+//     );
+
+//     if (updated.modifiedCount === 0) {
+//       return res.status(400).json({ message: "No changes made" });
+//     }
+
+//     res.json({ message: "Profile updated successfully" });
+//   } catch (err) {
+//     res.status(500).json({ message: "Failed to update profile", error: err.message });
+//   }
+// }
+export async function updateProfile(req, res) {
+  if (!req.user) {
+    return res.status(401).json({ message: "Unauthorized" });
+  }
+
+  const { firstName, lastName, phone } = req.body;
+
+  try {
+    // Validate inputs (optional, add your own validation here)
+
+    const updatedUser = await User.findOneAndUpdate(
+      { email: req.user.email },
+      {
+        ...(firstName !== undefined && { firstName }),
+        ...(lastName !== undefined && { lastName }),
+        ...(phone !== undefined && { phone }),
+      },
+      { new: true } // Return updated doc
+    );
+
+    if (!updatedUser) {
+      return res.status(404).json({ message: "User not found or no changes made" });
+    }
+
+    res.json({ message: "Profile updated successfully", user: updatedUser });
+  } catch (err) {
+    res.status(500).json({ message: "Failed to update profile", error: err.message });
+  }
+}
+
+
+export async function changePasswordWithOld(req, res) {
+  if (!req.user) {
+    return res.status(401).json({ message: "Unauthorized" });
+  }
+
+  const { oldPassword, newPassword } = req.body;
+
+  try {
+    const user = await User.findOne({ email: req.user.email });
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    const isCorrect = bcrypt.compareSync(oldPassword, user.password);
+    if (!isCorrect) return res.status(400).json({ message: "Old password is incorrect" });
+
+    const hashedPassword = bcrypt.hashSync(newPassword, 10);
+    await User.updateOne({ email: req.user.email }, { password: hashedPassword });
+
+    res.json({ message: "Password changed successfully" });
+  } catch (err) {
+    res.status(500).json({ message: "Failed to change password", error: err.message });
+  }
+}
+
