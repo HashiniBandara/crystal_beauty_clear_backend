@@ -23,22 +23,26 @@ const userSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
-  phone:{
-    type:String,
-    required:true,
-    default:"Not given"
+  phone: {
+    type: String,
+    required: true,
+    default: "Not given",
   },
-  isDisabled:{
-    type:Boolean,
-    required:true,
-    default:false
+  image: {
+    type: String,
+    default: "https://cdn-icons-png.flaticon.com/512/149/149071.png",
   },
-  isEmailVerified:{
-    type:Boolean,
-    required:true,
-    default:false
+  isDisabled: {
+    type: Boolean,
+    required: true,
+    default: false,
+  },
+  isEmailVerified: {
+    type: Boolean,
+    required: true,
+    default: false,
   },
 });
 
-const User =mongoose.model("users",userSchema)
+const User = mongoose.model("users", userSchema);
 export default User;

@@ -183,17 +183,37 @@ export async function googleLogin(req, res) {
   }
 }
 
-export function getCurrentUser(req, res) {
-  if (req.user == null) {
-    res.status(403).json({
+// export function getCurrentUser(req, res) {
+//   if (req.user == null) {
+//     res.status(403).json({
+//       message: "Please login to get user details",
+//     });
+//     return;
+//   }
+//   res.json({
+//     user: req.user,
+//   });
+// }
+
+export async function getCurrentUser(req, res) {
+  if (!req.user) {
+    return res.status(403).json({
       message: "Please login to get user details",
     });
-    return;
   }
-  res.json({
-    user: req.user,
-  });
+
+  try {
+    const dbUser = await User.findOne({ email: req.user.email });
+    if (!dbUser) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    res.json({ user: dbUser });
+  } catch (error) {
+    res.status(500).json({ message: "Failed to fetch user", error: error.message });
+  }
 }
+
 
 export async function sendOTP(req, res) {
   const email = req.body.email;
@@ -319,33 +339,99 @@ export async function blockUser(req, res) {
 //     res.status(500).json({ message: "Failed to update profile", error: err.message });
 //   }
 // }
+// export async function updateProfile(req, res) {
+//   if (!req.user) {
+//     return res.status(401).json({ message: "Unauthorized" });
+//   }
+
+//   const { firstName, lastName, phone } = req.body;
+
+//   try {
+//     // Validate inputs (optional, add your own validation here)
+
+//     const updatedUser = await User.findOneAndUpdate(
+//       { email: req.user.email },
+//       {
+//         ...(firstName !== undefined && { firstName }),
+//         ...(lastName !== undefined && { lastName }),
+//         ...(phone !== undefined && { phone }),
+//       },
+//       { new: true } // Return updated doc
+//     );
+
+//     if (!updatedUser) {
+//       return res.status(404).json({ message: "User not found or no changes made" });
+//     }
+
+//     res.json({ message: "Profile updated successfully", user: updatedUser });
+//   } catch (err) {
+//     res.status(500).json({ message: "Failed to update profile", error: err.message });
+//   }
+// }
+
+// export async function updateProfile(req, res) {
+//   if (!req.user) {
+//     return res.status(401).json({ message: "Unauthorized" });
+//   }
+
+//   const { firstName, lastName, phone, image } = req.body;
+
+//   try {
+//     const updatedUser = await User.findOneAndUpdate(
+//       { email: req.user.email },
+//       {
+//         ...(firstName !== undefined && { firstName }),
+//         ...(lastName !== undefined && { lastName }),
+//         ...(phone !== undefined && { phone }),
+//         ...(image !== undefined && { image }),
+//       },
+//       { new: true }
+//     );
+
+//     if (!updatedUser) {
+//       return res
+//         .status(404)
+//         .json({ message: "User not found or no changes made" });
+//     }
+
+//     res.json({ message: "Profile updated successfully", user: updatedUser });
+//   } catch (err) {
+//     res
+//       .status(500)
+//       .json({ message: "Failed to update profile", error: err.message });
+//   }
+// }
+
 export async function updateProfile(req, res) {
   if (!req.user) {
     return res.status(401).json({ message: "Unauthorized" });
   }
 
-  const { firstName, lastName, phone } = req.body;
+  const { firstName, lastName, phone, image } = req.body;
 
   try {
-    // Validate inputs (optional, add your own validation here)
-
     const updatedUser = await User.findOneAndUpdate(
       { email: req.user.email },
       {
         ...(firstName !== undefined && { firstName }),
         ...(lastName !== undefined && { lastName }),
         ...(phone !== undefined && { phone }),
+        ...(image !== undefined && image !== "" && { image }),
       },
-      { new: true } // Return updated doc
+      { new: true }
     );
 
     if (!updatedUser) {
-      return res.status(404).json({ message: "User not found or no changes made" });
+      return res
+        .status(404)
+        .json({ message: "User not found or no changes made" });
     }
 
     res.json({ message: "Profile updated successfully", user: updatedUser });
   } catch (err) {
-    res.status(500).json({ message: "Failed to update profile", error: err.message });
+    res
+      .status(500)
+      .json({ message: "Failed to update profile", error: err.message });
   }
 }
 
@@ -372,4 +458,22 @@ export async function changePasswordWithOld(req, res) {
     res.status(500).json({ message: "Failed to change password", error: err.message });
   }
 }
+
+// export async function updateUser(req, res) {
+//   try {
+//     const user = await User.findById(req.user._id);
+//     if (!user) return res.status(404).json({ message: "User not found" });
+
+//     user.firstName = req.body.firstName;
+//     user.lastName = req.body.lastName;
+//     user.phone = req.body.phone;
+//     user.image = req.body.image || user.image;
+
+//     await user.save();
+//     res.json({ message: "Profile updated", user });
+//   } catch (error) {
+//     res.status(500).json({ message: "Failed to update profile" });
+//   }
+// }
+
 
