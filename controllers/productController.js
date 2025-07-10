@@ -183,3 +183,20 @@ export async function searchProduct(req, res) {
     return;
   }
 }
+
+export async function getProductsByCategory(req, res) {
+  const categoryId = req.params.categoryId;
+
+  try {
+    const products = await Product.find({ categoryId });
+
+    if (!products || products.length === 0) {
+      return res.status(404).json({ message: "No products found in this category" });
+    }
+
+    res.json(products);
+  } catch (err) {
+    res.status(500).json({ message: "Error retrieving category products", error: err.message });
+  }
+}
+
