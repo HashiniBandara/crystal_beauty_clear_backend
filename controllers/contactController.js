@@ -70,3 +70,13 @@ export const submitContactForm = async (req, res) => {
     res.status(500).json({ message: "Something went wrong" });
   }
 };
+
+export const getAllContactMessages = async (req, res) => {
+  try {
+    const messages = await Contact.find().sort({ createdAt: -1 });
+    res.status(200).json({ messages });
+  } catch (err) {
+    res.status(500).json({ message: "Failed to fetch contact messages" });
+  }
+};
+
