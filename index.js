@@ -10,6 +10,7 @@ import cors from 'cors';
 import dotenv from 'dotenv'; 
 import reviewRouter from './routes/reviewRouter.js';
 import contactRouter from './routes/contactRouter.js';
+import adminRouter from './routes/adminRouter.js';
 
 dotenv.config();
 
@@ -40,6 +41,7 @@ app.use("/api/order",orderRouter)
 app.use("/api/categories", categoryRouter)
 app.use("/api/review", reviewRouter);
 app.use("/api/contact", contactRouter);
+app.use("/api/stats", adminRouter);
 
 
 app.listen(3000, 
