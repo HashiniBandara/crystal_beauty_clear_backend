@@ -92,80 +92,118 @@ export async function createOrder(req, res) {
     });
 }
 
+
 export function getOrders(req, res) {
   if (req.user == null) {
     res.status(401).json({
-      message: "Unathorized",
+      message: "Unauthorized",
     });
     return;
   }
 
-  // if (req.user.role != "admin") {
-  //   Order.find()
-  //     .then((orders) => {
-  //       res.json(orders);
-  //     })
-  //     .catch((err) => {
-  //       res.status(500).json({
-  //         message: "Orders not found",
-  //       });
-  //     });
-  // } else {
-  //   Order.find({
-  //     email: req.user.email,
-  //   })
-  //     .then((orders) => {
-  //       res.json(orders);
-  //     })
-  //     .catch((err) => {
-  //       res.status(500).json({
-  //         message: "Orders not found",
-  //       });
-  //     });
-  // }
   if (req.user.role === "admin") {
-    // Admin: show all orders
+    // Admin: show all orders sorted from latest to oldest
     Order.find()
+      .sort({ date: -1 })
       .then((orders) => res.json(orders))
       .catch((err) => res.status(500).json({ message: "Orders not found" }));
   } else {
     // Non-admin: show only user's orders
     Order.find({ email: req.user.email })
+      .sort({ date: -1 })
       .then((orders) => res.json(orders))
       .catch((err) => res.status(500).json({ message: "Orders not found" }));
   }
 }
 
+
+// export async function updateOrder(req, res) {
+//   try {
+//     if (req.user == null) {
+//       res.status(401).json({
+//         message: "Unathorized",
+//       });
+//       return;
+//     }
+
+//     if (req.user.role != "admin") {
+//       res.status(403).json({
+//         message: "You are not authorized to update an order",
+//       });
+//       return;
+//     }
+
+//     const orderId = req.params.orderId;
+//     const order = await Order.findOneAndUpdate(
+//       {
+//         orderId: orderId,
+//       },
+//       req.body
+//     );
+//     res.json({
+//       message: "Order updated successfully",
+//     });
+//   } catch (err) {
+//     // console.log(err);
+//     res.status(500).json({
+//       message: "Order not updated",
+//     });
+//   }
+// }
 export async function updateOrder(req, res) {
   try {
-    if (req.user == null) {
-      res.status(401).json({
-        message: "Unathorized",
-      });
-      return;
+    if (!req.user) {
+      return res.status(401).json({ message: "Unauthorized" });
     }
 
-    if (req.user.role != "admin") {
-      res.status(403).json({
-        message: "You are not authorized to update an order",
-      });
-      return;
+    if (req.user.role !== "admin") {
+      return res.status(403).json({ message: "You are not authorized to update an order" });
     }
 
     const orderId = req.params.orderId;
-    const order = await Order.findOneAndUpdate(
-      {
-        orderId: orderId,
-      },
-      req.body
-    );
-    res.json({
-      message: "Order updated successfully",
-    });
+    const newStatus = req.body.status;
+
+    const order = await Order.findOne({ orderId });
+    if (!order) {
+      return res.status(404).json({ message: "Order not found" });
+    }
+
+    const previousStatus = order.status;
+
+    // Allowed status transitions that require stock deduction
+    const shouldDeductStock =
+      ["Accepted", "Processing", "Delivered"].includes(newStatus) &&
+      !["Accepted", "Processing", "Delivered"].includes(previousStatus);
+
+    if (shouldDeductStock) {
+      for (const item of order.billItems) {
+        const product = await Product.findOne({ productId: item.productId });
+
+        if (!product) {
+          return res.status(404).json({
+            message: `Product with ID ${item.productId} not found`,
+          });
+        }
+
+        // Check if enough stock is available
+        if (product.stock < item.quantity) {
+          return res.status(400).json({
+            message: `Insufficient stock for product: ${product.name}`,
+          });
+        }
+
+        product.stock -= item.quantity;
+        await product.save();
+      }
+    }
+
+    // Update the order status
+    order.status = newStatus;
+    await order.save();
+
+    return res.json({ message: "Order updated successfully" });
   } catch (err) {
-    // console.log(err);
-    res.status(500).json({
-      message: "Order not updated",
-    });
+    console.error(err);
+    return res.status(500).json({ message: "Order not updated" });
   }
 }
